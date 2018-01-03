@@ -23,6 +23,7 @@ HINSTANCE ghInstance;
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
 {
 	//hihihihihihihihiihihihihi
+	//hihu
 	static TCHAR szAppName[] = TEXT("HelloWin");
 	HWND hwnd;
 	MSG msg;
