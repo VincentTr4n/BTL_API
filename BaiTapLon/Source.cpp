@@ -4,6 +4,9 @@
 #include <Commdlg.h>
 #include <string>
 #include <cstring>
+#include <iostream>
+#include <ole2.h>
+#include <olectl.h>
 
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -54,6 +57,84 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	}
 	return msg.lParam;
 }
+
+bool saveBitmap(LPCWSTR filename, HBITMAP bmp, HPALETTE pal)
+{
+	bool result = false;
+	PICTDESC pd;
+
+	pd.cbSizeofstruct = sizeof(PICTDESC);
+	pd.picType = PICTYPE_BITMAP;
+	pd.bmp.hbitmap = bmp;
+	pd.bmp.hpal = pal;
+
+	LPPICTURE picture;
+	HRESULT res = OleCreatePictureIndirect(&pd, IID_IPicture, false,
+		reinterpret_cast<void**>(&picture));
+
+	if (!SUCCEEDED(res))
+		return false;
+
+	LPSTREAM stream;
+	res = CreateStreamOnHGlobal(0, true, &stream);
+
+	if (!SUCCEEDED(res))
+	{
+		picture->Release();
+		return false;
+	}
+
+	LONG bytes_streamed;
+	res = picture->SaveAsFile(stream, true, &bytes_streamed);
+
+	HANDLE file = CreateFile(filename, GENERIC_WRITE, FILE_SHARE_READ, 0,
+		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+	if (!SUCCEEDED(res) || !file)
+	{
+		stream->Release();
+		picture->Release();
+		return false;
+	}
+
+	HGLOBAL mem = 0;
+	GetHGlobalFromStream(stream, &mem);
+	LPVOID data = GlobalLock(mem);
+
+	DWORD bytes_written;
+
+	result = !!WriteFile(file, data, bytes_streamed, &bytes_written, 0);
+	result &= (bytes_written == static_cast<DWORD>(bytes_streamed));
+
+	GlobalUnlock(mem);
+	CloseHandle(file);
+
+	stream->Release();
+	picture->Release();
+
+	return result;
+}
+bool screenCapturePart(int x, int y, int w, int h, LPCWSTR fname) {
+	HDC hdcSource = GetDC(NULL);
+	HDC hdcMemory = CreateCompatibleDC(hdcSource);
+
+	int capX = GetDeviceCaps(hdcSource, HORZRES);
+	int capY = GetDeviceCaps(hdcSource, VERTRES);
+
+	HBITMAP hBitmap = CreateCompatibleBitmap(hdcSource, w, h);
+	HBITMAP hBitmapOld = (HBITMAP)SelectObject(hdcMemory, hBitmap);
+
+	BitBlt(hdcMemory, 0, 0, w, h, hdcSource, x, y, SRCCOPY);
+	hBitmap = (HBITMAP)SelectObject(hdcMemory, hBitmapOld);
+
+	DeleteDC(hdcSource);
+	DeleteDC(hdcMemory);
+
+	HPALETTE hpal = NULL;
+	if (saveBitmap(fname, hBitmap, hpal)) return true;
+	return false;
+}
+
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -542,21 +623,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			
 			break;
 		case ID_SAVE:
+			
 			char szFileName[MAX_PATH] = "";
 
 			ZeroMemory(&ofn, sizeof(ofn));
 
 			ofn.lStructSize = sizeof(ofn);
 			ofn.hwndOwner = NULL;
-			ofn.lpstrFilter = (LPCWSTR)L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0PNG (*.png)\0*.png\0";
+			ofn.lpstrFilter = (LPCWSTR)L"BMP (*.bmp)\0*.bmp\0";
 			ofn.lpstrFile = (LPWSTR)szFileName;
 			ofn.nMaxFile = MAX_PATH;
 			ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-			ofn.lpstrDefExt = (LPCWSTR)L"txt";
+			ofn.lpstrDefExt = (LPCWSTR)L"bmp";
 
 			GetSaveFileName(&ofn);
-			printf("the path is : %s\n", ofn.lpstrFile);
-			getchar();
+			RECT tmp;
+			GetWindowRect(hwnd, &tmp);
+			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 60, ofn.lpstrFile);
 			break;
          ///////////////////////
 		
@@ -588,6 +671,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	
 	return DefWindowProc(hwnd, message, wParam, lParam);
 }
+
+
 COLORREF ShowColorDialog(HWND hwnd) {
 	CHOOSECOLOR cc;
 	static COLORREF crCustClr[16];
