@@ -87,11 +87,9 @@
     <ResourceCompile Include="BaiTapLon.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="C:\Users\mlap\Downloads\Icons8-Windows-8-Diy-Paint-Brush.ico" />
     <Image Include="icon1.ico" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\Users\mlap\Downloads\pencil-5.cur" />
     <None Include="cursor1.cur" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

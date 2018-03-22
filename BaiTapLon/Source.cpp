@@ -7,6 +7,8 @@
 #include <iostream>
 #include <ole2.h>
 #include <olectl.h>
+#include <chrono>
+#include <thread>
 
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -19,6 +21,15 @@ LRESULT CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
 
 COLORREF ShowColorDialog(HWND);
 COLORREF gColor = RGB(255, 255, 255);
+
+static HCURSOR cursor1;
+static HCURSOR cursor2;
+static HCURSOR cursor3;
+static HCURSOR cursor4;
+
+static HINSTANCE hInst;
+
+static bool flag = true;
 
 HINSTANCE ghInstance;
 //////////////
@@ -37,7 +48,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = hInstance;
-	wndclass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
+	wndclass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON2));
 	wndclass.hCursor = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CT));
 	wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
 	wndclass.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
@@ -48,6 +59,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 		return 0;
 	}
 	hwnd = CreateWindow(szAppName, TEXT("Ứng Dụng Paint"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
+	hInst = hInstance;
 	ShowWindow(hwnd, iCmdShow);
 	UpdateWindow(hwnd);
 	while (GetMessage(&msg, NULL, 0, 0))
@@ -147,9 +159,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	static HBRUSH hBrush;
 	static POINT ptPoint[100000],apt_tg[3],apt_ht[4],apt_mt[7],apt_lg[6],apt_ng[5],apt_ns[12];
 	static HPEN hPen,hPen1;
-
-
-
 
 	switch (message)
 	{
@@ -511,10 +520,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		
 		
 		
-		
-		
-		
-			
 	////////////////////////////////////////
 		case ID_CQ_SOLID:
 			gColor = ShowColorDialog(hwnd);
@@ -637,10 +642,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ofn.lpstrDefExt = (LPCWSTR)L"bmp";
 
 			GetSaveFileName(&ofn);
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			RECT tmp;
 			GetWindowRect(hwnd, &tmp);
-			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 60, ofn.lpstrFile);
+			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80, ofn.lpstrFile);
 			break;
+		
          ///////////////////////
 		
 		}
@@ -668,6 +675,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		return 0;
 	}
+	
 	
 	return DefWindowProc(hwnd, message, wParam, lParam);
 }
