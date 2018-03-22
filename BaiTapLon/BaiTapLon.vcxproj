@@ -87,10 +87,13 @@
     <ResourceCompile Include="BaiTapLon.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="E:\Downloads\if_Paint_67992.ico" />
     <Image Include="icon1.ico" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cursor1.cur" />
+    <None Include="eraser.cur" />
+    <None Include="handwriting.cur" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

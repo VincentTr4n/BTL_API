@@ -1,7 +1,7 @@
 ﻿  Source.cpp
-d:\myworkspace\code_api\btl_api\baitaplon\resource.h(62): warning C4005: 'PS_DASH': macro redefinition
+d:\myworkspace\code_api\btl_api\baitaplon\resource.h(65): warning C4005: 'PS_DASH': macro redefinition
   c:\program files (x86)\windows kits\8.1\include\um\wingdi.h(1958): note: see previous definition of 'PS_DASH'
-d:\myworkspace\code_api\btl_api\baitaplon\resource.h(103): warning C4005: 'R2_MASKPEN': macro redefinition
+d:\myworkspace\code_api\btl_api\baitaplon\resource.h(106): warning C4005: 'R2_MASKPEN': macro redefinition
   c:\program files (x86)\windows kits\8.1\include\um\wingdi.h(68): note: see previous definition of 'R2_MASKPEN'
 d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(231): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data
 d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(235): warning C4244: 'argument': conversion from 'float' to 'int', possible loss of data

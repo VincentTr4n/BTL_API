@@ -22,10 +22,7 @@ LRESULT CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
 COLORREF ShowColorDialog(HWND);
 COLORREF gColor = RGB(255, 255, 255);
 
-static HCURSOR cursor1;
-static HCURSOR cursor2;
-static HCURSOR cursor3;
-static HCURSOR cursor4;
+static HCURSOR cursor;
 
 static HINSTANCE hInst;
 
@@ -49,7 +46,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = hInstance;
 	wndclass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON2));
-	wndclass.hCursor = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_CT));
+	wndclass.hCursor = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_PEN1));
 	wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
 	wndclass.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
 	wndclass.lpszClassName = szAppName;
@@ -197,6 +194,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		}
 		if (hinh == ID_ERASER){
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_ERASER));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			if (wParam & MK_LBUTTON)
 			{
 			ptPoint[n].x = LOWORD(lParam);
@@ -552,33 +552,63 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 			//////////////////////////////////////////////////////////
 		case ID_1:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 1;
 			break;
 		case ID_2:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 2;
 			break;
 		case ID_3:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 3;
 			break;
 		case ID_4:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 4;
 			break;
 		case ID_5:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 5;
 			break;
 		case ID_6:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 6;
 			break;
 		case ID_7:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 7;
 			break;
 		case ID_8:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 8;
 			break;
 		case ID_9:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 9;
 			break;
 		case ID_10:
+			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
+			SetCursor(cursor);
+			SetClassLong(hwnd, -12, (DWORD)cursor);
 			kt = 10;
 			break;
 			
@@ -674,6 +704,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+	
 	}
 	
 	
