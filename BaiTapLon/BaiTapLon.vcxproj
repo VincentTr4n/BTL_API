@@ -81,6 +81,7 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="helpers.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

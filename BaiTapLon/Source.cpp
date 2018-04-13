@@ -1,14 +1,7 @@
 ﻿
 #include <windows.h>
 #include "resource.h"
-#include <Commdlg.h>
-#include <string>
-#include <cstring>
-#include <iostream>
-#include <ole2.h>
-#include <olectl.h>
-#include <chrono>
-#include <thread>
+#include "helpers.h"
 
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -23,10 +16,12 @@ COLORREF ShowColorDialog(HWND);
 COLORREF gColor = RGB(255, 255, 255);
 
 static HCURSOR cursor;
-
 static HINSTANCE hInst;
-
 static bool flag = true;
+static HBITMAP hBitmap = NULL;
+
+static wstring fileName;
+
 
 HINSTANCE ghInstance;
 //////////////
@@ -145,7 +140,7 @@ bool screenCapturePart(int x, int y, int w, int h, LPCWSTR fname) {
 }
 
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HBITMAP bm;
 	HDC hdc;
@@ -166,7 +161,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		return 0;
 	case WM_CLOSE:
-		if (MessageBox(hwnd, TEXT("Bạn có muốn thoát không?"), TEXT("Hỏi"), MB_YESNO | MB_ICONQUESTION) == IDYES)
+		if (MessageBox(hWnd, TEXT("Bạn có muốn thoát không?"), TEXT("Hỏi"), MB_YESNO | MB_ICONQUESTION) == IDYES)
 			PostQuitMessage(0);
 		return 0;
 
@@ -178,17 +173,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				ptPoint[n].x = LOWORD(lParam);
 				ptPoint[n].y = HIWORD(lParam);
-				hdc = GetDC(hwnd);
+				hdc = GetDC(hWnd);
 				SelectObject(hdc, hPen);
 				if (n >= 1)
 				{
-					
-					
 					MoveToEx(hdc, ptPoint[n - 1].x, ptPoint[n - 1].y, NULL);
 					LineTo(hdc, ptPoint[n].x, ptPoint[n].y);
 				}
 				n = n + 1;
-				ReleaseDC(hwnd, hdc);
+				ReleaseDC(hWnd, hdc);
 				break;
 			}
 
@@ -196,12 +189,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (hinh == ID_ERASER){
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_ERASER));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			if (wParam & MK_LBUTTON)
 			{
 			ptPoint[n].x = LOWORD(lParam);
 			ptPoint[n].y = HIWORD(lParam);
-			hdc = GetDC(hwnd);
+			hdc = GetDC(hWnd);
 			SelectObject(hdc, hPen);
 			if (n >= 1)
 			{
@@ -211,7 +204,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				LineTo(hdc, ptPoint[n].x, ptPoint[n].y);
 			}
 			n = n + 1;
-			ReleaseDC(hwnd, hdc);
+			ReleaseDC(hWnd, hdc);
 			break;
 		}
 		}
@@ -224,9 +217,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		n = 0;
 		xEnd = LOWORD(lParam);
 		yEnd = HIWORD(lParam);
-		hdc = GetDC(hwnd);
+		hdc = GetDC(hWnd);
 		SelectObject(hdc, hPen);
-		SelectObject(hdc, hBrush);
+		//SelectObject(hdc, hBrush);
+		SelectObject(hdc,GetStockObject(HOLLOW_BRUSH));
 		if (hinh == ID_HINHCHUNHAT1){
 			Rectangle(hdc, xStart, yStart, xEnd, yEnd);
 		}
@@ -449,7 +443,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		
 		
-		ReleaseDC(hwnd, hdc);
+		ReleaseDC(hWnd, hdc);
 		break;
 	   
 	case WM_COMMAND:
@@ -457,208 +451,193 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case ID_DUONGTHANG:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_ECLIPSE:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHCHUNHAT1:
             hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHCHUNHAT2:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_TAMGIAC1:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_TAMGIAC2:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHTHOI:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHNGUGIAC:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_LUCGIAC:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_MUITENNGANG:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 
 		case ID_MUITENDOC:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_SAO4CANH:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_SAO5CANH:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_SAO6CANH:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		
 		case ID_CHUOT:
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		
 		
 		
 	////////////////////////////////////////
 		case ID_CQ_SOLID:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hBrush = CreateSolidBrush(gColor);
 			break;
 		case ID_CQ_HORIZONTAL:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_HORIZONTAL,gColor);
 			break;
 			
 		case ID_CQ_VERTICAL:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_VERTICAL, gColor);
 			break;
 		case ID_CQ_FDIALGONAL:
-		    gColor = ShowColorDialog(hwnd);
+		    gColor = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_FDIAGONAL, gColor);
 			break;
 		case ID_CQ_BDIAGONAL:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_BDIAGONAL, gColor);
 			break;
 		case ID_CQ_CROSS:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_CROSS, gColor);
 			break;
 		case ID_CQ_DIAGCROSS:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_DIAGCROSS, gColor);
 			break;
 			//////////////////////////////////////////////////////////
 		case ID_1:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 1;
 			break;
 		case ID_2:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 2;
 			break;
 		case ID_3:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 3;
 			break;
 		case ID_4:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 4;
 			break;
 		case ID_5:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 5;
 			break;
 		case ID_6:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 6;
 			break;
 		case ID_7:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 7;
 			break;
 		case ID_8:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 8;
 			break;
 		case ID_9:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 9;
 			break;
 		case ID_10:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
-			SetClassLong(hwnd, -12, (DWORD)cursor);
+			SetClassLong(hWnd, -12, (DWORD)cursor);
 			kt = 10;
 			break;
 			
 		//////////////////////////////////////////////////////////////////
 		case ID_PS_DOT:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hPen = CreatePen(PS_DOT, kt, gColor);
 			break;
 		case ID_PS_DASH1:
 			//CreateDialogBox(hwnd);
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 			hPen = CreatePen(PS_DASHDOT,kt, gColor);
 			break;
 		case ID_PS_SOLID:
-			gColor = ShowColorDialog(hwnd);
+			gColor = ShowColorDialog(hWnd);
 		    hPen = CreatePen(PS_SOLID,kt, gColor);
 			break;
 		case ID_ERASER:
 			hPen = CreatePen(PS_SOLID, 20, RGB(255, 255, 255));
 			hinh = LOWORD(wParam);
-			InvalidateRect(hwnd, NULL, FALSE);
+			InvalidateRect(hWnd, NULL, FALSE);
 			break;
 			
 		case ID_NEW:
-			SetClassLong(hwnd, GCLP_HBRBACKGROUND, (LONG)GetStockObject(WHITE_BRUSH));
-			InvalidateRect(hwnd, NULL, TRUE);
+			SetClassLong(hWnd, GCLP_HBRBACKGROUND, (LONG)GetStockObject(WHITE_BRUSH));
+			InvalidateRect(hWnd, NULL, TRUE);
 			break;
 		
 		case ID_OPEN:
-			OPENFILENAME ofn;
-			char szFile[260];
-			ZeroMemory(&ofn, sizeof(ofn));
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFile = (LPWSTR)szFile;
-			ofn.lpstrFile[0] = '\0';
-			ofn.nMaxFile = sizeof(szFile);
-			ofn.lpstrFilter = L"All\0*.*\0Text\0*.txt\0PNG\0*.png\0";
-			ofn.nFilterIndex = -1;
-			ofn.lpstrFileTitle = NULL;
-			ofn.nMaxFileTitle = 0;
-			ofn.lpstrInitialDir = NULL;
-			ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
-			ShellExecute(NULL, 0, L"c:\\outfile.txt", 0, 0, SW_SHOW);
-			GetOpenFileName(&ofn);
-			MessageBox(NULL, ofn.lpstrFile, L"File Name", MB_OK);
-			
+			fileName = OpenFileDialog();
+			hBitmap = (HBITMAP)LoadImage(hInst, fileName.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_SAVE:
-			
+			OPENFILENAME ofn;
 			char szFileName[MAX_PATH] = "";
 
 			ZeroMemory(&ofn, sizeof(ofn));
@@ -674,7 +653,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			GetSaveFileName(&ofn);
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			RECT tmp;
-			GetWindowRect(hwnd, &tmp);
+			GetWindowRect(hWnd, &tmp);
 			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80, ofn.lpstrFile);
 			break;
 		
@@ -686,20 +665,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_PAINT:
-		hdc = BeginPaint(hwnd, &ps);
-		BITMAP bitmap;
-		HGDIOBJ oldBitmap;
-		bm = (HBITMAP)LoadImage(NULL, L"E:/RazerChroma_1920x1080.bmp", IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-		HDC hdcMem;
+		PAINTSTRUCT     ps;
+		HDC             hdc;
+		BITMAP          bitmap;
+		HDC             hdcMem;
+		HGDIOBJ         oldBitmap;
+
+		hdc = BeginPaint(hWnd, &ps);
 		hdcMem = CreateCompatibleDC(hdc);
-		oldBitmap = SelectObject(hdcMem, bm);
-		GetObject(bm, sizeof(bitmap), &bitmap);
+		oldBitmap = SelectObject(hdcMem, hBitmap);
+
+		GetObject(hBitmap, sizeof(bitmap), &bitmap);
 		BitBlt(hdc, 0, 0, bitmap.bmWidth, bitmap.bmHeight, hdcMem, 0, 0, SRCCOPY);
+
 		SelectObject(hdcMem, oldBitmap);
 		DeleteDC(hdcMem);
-		GetClientRect(hwnd, &rect);
 
-		EndPaint(hwnd, &ps);
+		EndPaint(hWnd, &ps);
 		return 0;
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -708,20 +690,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	
 	
-	return DefWindowProc(hwnd, message, wParam, lParam);
+	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
-
-COLORREF ShowColorDialog(HWND hwnd) {
-	CHOOSECOLOR cc;
-	static COLORREF crCustClr[16];
-	ZeroMemory(&cc, sizeof(cc));
-	cc.lStructSize = sizeof(cc);
-	cc.hwndOwner = hwnd;
-	cc.lpCustColors = (LPDWORD)crCustClr;
-	cc.rgbResult = RGB(0, 255, 0);
-	cc.Flags = CC_FULLOPEN | CC_RGBINIT;
-	ChooseColor(&cc);
-	return cc.rgbResult;
-}
-//////////////////////////
