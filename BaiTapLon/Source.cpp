@@ -7,20 +7,25 @@
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
-
+INT_PTR CALLBACK KichThuoc(HWND, UINT, WPARAM, LPARAM);
 //void RegisterPanel(void);
 //void CreateDialogBox(HWND);
 //void RegisterDialogClass(HWND);
 
-COLORREF ShowColorDialog(HWND);
-COLORREF gColor = RGB(255, 255, 255);
+void MyPen(HWND);
 
+
+COLORREF gColor = RGB(0, 0, 0);
+COLORREF gColor1 = RGB(0, 0, 0);
+
+static HMENU hMenu;
 static HCURSOR cursor;
 static HINSTANCE hInst;
 static bool flag = true;
 static HBITMAP hBitmap = NULL;
 
 static wstring fileName;
+static int val = 1;
 
 
 HINSTANCE ghInstance;
@@ -62,112 +67,61 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	return msg.lParam;
 }
 
-bool saveBitmap(LPCWSTR filename, HBITMAP bmp, HPALETTE pal)
-{
-	bool result = false;
-	PICTDESC pd;
 
-	pd.cbSizeofstruct = sizeof(PICTDESC);
-	pd.picType = PICTYPE_BITMAP;
-	pd.bmp.hbitmap = bmp;
-	pd.bmp.hpal = pal;
+HDC hdc;
+PAINTSTRUCT ps;
+RECT rect;
+static int hinh = ID_DUONGTHANG, style = PS_SOLID, n = 0, kt = val;
+static float xStart, yStart, xEnd, yEnd;
+static HBRUSH hBrush;
+static POINT ptPoint[100000], apt_tg[3], apt_ht[4], apt_mt[7], apt_lg[6], apt_ng[5], apt_ns[12];
+static HPEN hPen, hPen1;
+static bool isNormal = true;
 
-	LPPICTURE picture;
-	HRESULT res = OleCreatePictureIndirect(&pd, IID_IPicture, false,
-		reinterpret_cast<void**>(&picture));
-
-	if (!SUCCEEDED(res))
-		return false;
-
-	LPSTREAM stream;
-	res = CreateStreamOnHGlobal(0, true, &stream);
-
-	if (!SUCCEEDED(res))
-	{
-		picture->Release();
-		return false;
-	}
-
-	LONG bytes_streamed;
-	res = picture->SaveAsFile(stream, true, &bytes_streamed);
-
-	HANDLE file = CreateFile(filename, GENERIC_WRITE, FILE_SHARE_READ, 0,
-		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-
-	if (!SUCCEEDED(res) || !file)
-	{
-		stream->Release();
-		picture->Release();
-		return false;
-	}
-
-	HGLOBAL mem = 0;
-	GetHGlobalFromStream(stream, &mem);
-	LPVOID data = GlobalLock(mem);
-
-	DWORD bytes_written;
-
-	result = !!WriteFile(file, data, bytes_streamed, &bytes_written, 0);
-	result &= (bytes_written == static_cast<DWORD>(bytes_streamed));
-
-	GlobalUnlock(mem);
-	CloseHandle(file);
-
-	stream->Release();
-	picture->Release();
-
-	return result;
-}
-bool screenCapturePart(int x, int y, int w, int h, LPCWSTR fname) {
-	HDC hdcSource = GetDC(NULL);
-	HDC hdcMemory = CreateCompatibleDC(hdcSource);
-
-	int capX = GetDeviceCaps(hdcSource, HORZRES);
-	int capY = GetDeviceCaps(hdcSource, VERTRES);
-
-	HBITMAP hBitmap = CreateCompatibleBitmap(hdcSource, w, h);
-	HBITMAP hBitmapOld = (HBITMAP)SelectObject(hdcMemory, hBitmap);
-
-	BitBlt(hdcMemory, 0, 0, w, h, hdcSource, x, y, SRCCOPY);
-	hBitmap = (HBITMAP)SelectObject(hdcMemory, hBitmapOld);
-
-	DeleteDC(hdcSource);
-	DeleteDC(hdcMemory);
-
-	HPALETTE hpal = NULL;
-	if (saveBitmap(fname, hBitmap, hpal)) return true;
-	return false;
-}
+//
+// Các biến để vẽ chữ 
+static HWND text = NULL;
+static int tx = 0, ty = 0;
+static HWND hStatic = NULL;
+static HFONT hFont;
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	RECT tmp;
 	HBITMAP bm;
-	HDC hdc;
-	PAINTSTRUCT ps;
-	RECT rect;
-	static int hinh, r, g, b, i, n = 0,kt=1;
-	static float xStart, yStart, xEnd,yEnd;
-	static HBRUSH hBrush;
-	static POINT ptPoint[100000],apt_tg[3],apt_ht[4],apt_mt[7],apt_lg[6],apt_ng[5],apt_ns[12];
-	static HPEN hPen,hPen1;
-
 	switch (message)
 	{
 	case WM_SIZE:
+
 		break;
 	case WM_CREATE:
-		
-
+	
 		return 0;
 	case WM_CLOSE:
 		if (MessageBox(hWnd, TEXT("Bạn có muốn thoát không?"), TEXT("Hỏi"), MB_YESNO | MB_ICONQUESTION) == IDYES)
 			PostQuitMessage(0);
 		return 0;
+	//
+	// Xử lý xự kiện click chuột phải để hiện menu pop up
 
-	
+	case WM_RBUTTONDOWN:
+		hMenu = LoadMenu(hInst, MAKEINTRESOURCE(IDR_MENUPOPUP));
+		POINT point;
+		hMenu = GetSubMenu(hMenu, 0);
+		point.x = LOWORD(lParam);
+		point.y = HIWORD(lParam);
+		ClientToScreen(hWnd, &point);
+		TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, point.x, point.y, 0, hWnd, NULL);
+		break;
+
     case WM_MOUSEMOVE:
 		
+		//
+		// Xự kiện di chuyển chuột -> vẽ bằng chuột
+		// Nếu còn nhấn chuột thì sẽ lấy các tọa độ tương ứng và vẽ các đoạn thẳng rất nhỏ từ điểm trc đó đến điểm hiện tại
+		// (n-1 -> n)
+
 		if (hinh == ID_CHUOT){
 			if (wParam & MK_LBUTTON)
 			{
@@ -186,6 +140,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 		}
+		
+		//
+		// Tương tự như vẽ bằng chuột nhưng sẽ vẽ ra màu trắng -> tẩy hình
+
 		if (hinh == ID_ERASER){
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_ERASER));
 			SetCursor(cursor);
@@ -209,18 +167,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		}
 		return 0;
+
+	//
+	// Xự kiện nhấn chuột -> lấy vị trí bắt đầu vẽ
+
 	case WM_LBUTTONDOWN:
 		xStart = LOWORD(lParam);
 		yStart = HIWORD(lParam);
 		break;
+	
+	//
+	// Xự kiện thả chuột -> lấy vị trí kết thúc để xử lý các hình tương ứng
+
 	case WM_LBUTTONUP:
 		n = 0;
 		xEnd = LOWORD(lParam);
 		yEnd = HIWORD(lParam);
 		hdc = GetDC(hWnd);
 		SelectObject(hdc, hPen);
-		//SelectObject(hdc, hBrush);
-		SelectObject(hdc,GetStockObject(HOLLOW_BRUSH));
+		
+		// Nếu là vẽ bình thường thì không cho phép các hình đè nên nhau 
+		// Ngược lại sẽ thì đc
+
+		if(isNormal) SelectObject(hdc,GetStockObject(HOLLOW_BRUSH));
+		else SelectObject(hdc, hBrush);
+
+		// 
+		// Phần xử lý tọa độ để vẽ các hình, xử dụng các hàm mà win32 cung cấp sẵn hoặc có thể tự tạo hình theo ý thích
+
 		if (hinh == ID_HINHCHUNHAT1){
 			Rectangle(hdc, xStart, yStart, xEnd, yEnd);
 		}
@@ -238,7 +212,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_tg[2].x = xStart;
 			apt_tg[2].y = yEnd;
 			Polygon(hdc, apt_tg,3);
-
 		}
 		if (hinh == ID_TAMGIAC2)
 		{
@@ -446,7 +419,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		ReleaseDC(hWnd, hdc);
 		break;
 	   
+	
 	case WM_COMMAND:
+	
+	// 
+	// Phần xử lý chọn các hình vẽ
+
 		switch (LOWORD(wParam))
 		{
 		case ID_DUONGTHANG:
@@ -511,150 +489,225 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			hinh = LOWORD(wParam);
 			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
-		
-		
-		
+	
+	// Phần xử lý chổi quét
 	////////////////////////////////////////
 		case ID_CQ_SOLID:
-			gColor = ShowColorDialog(hWnd);
-			hBrush = CreateSolidBrush(gColor);
+			gColor1 = ShowColorDialog(hWnd);
+			hBrush = CreateSolidBrush(gColor1);
+			InvalidateRect(hWnd, NULL, FALSE);
+			isNormal = false;
 			break;
 		case ID_CQ_HORIZONTAL:
-			gColor = ShowColorDialog(hWnd);
-			hBrush = CreateHatchBrush(HS_HORIZONTAL,gColor);
+			gColor1 = ShowColorDialog(hWnd);
+			hBrush = CreateHatchBrush(HS_HORIZONTAL,gColor1);
+			InvalidateRect(hWnd, NULL, FALSE);
+			isNormal = false;
 			break;
 			
 		case ID_CQ_VERTICAL:
-			gColor = ShowColorDialog(hWnd);
-			hBrush = CreateHatchBrush(HS_VERTICAL, gColor);
+			gColor1 = ShowColorDialog(hWnd);
+			hBrush = CreateHatchBrush(HS_VERTICAL, gColor1);
+			InvalidateRect(hWnd, NULL, FALSE);
+			isNormal = false;
 			break;
 		case ID_CQ_FDIALGONAL:
-		    gColor = ShowColorDialog(hWnd);
-			hBrush = CreateHatchBrush(HS_FDIAGONAL, gColor);
+		    gColor1 = ShowColorDialog(hWnd);
+			hBrush = CreateHatchBrush(HS_FDIAGONAL, gColor1);
+			InvalidateRect(hWnd, NULL, FALSE);
+			isNormal = false;
 			break;
 		case ID_CQ_BDIAGONAL:
-			gColor = ShowColorDialog(hWnd);
-			hBrush = CreateHatchBrush(HS_BDIAGONAL, gColor);
+			gColor1 = ShowColorDialog(hWnd);
+			hBrush = CreateHatchBrush(HS_BDIAGONAL, gColor1);
+			InvalidateRect(hWnd, NULL, FALSE);
+			isNormal = false;
 			break;
 		case ID_CQ_CROSS:
-			gColor = ShowColorDialog(hWnd);
-			hBrush = CreateHatchBrush(HS_CROSS, gColor);
+			gColor1 = ShowColorDialog(hWnd);
+			hBrush = CreateHatchBrush(HS_CROSS, gColor1);
+			InvalidateRect(hWnd, NULL, FALSE);
+			isNormal = false;
 			break;
 		case ID_CQ_DIAGCROSS:
-			gColor = ShowColorDialog(hWnd);
+			gColor1 = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_DIAGCROSS, gColor);
+			InvalidateRect(hWnd, NULL, FALSE);
+			isNormal = false;
 			break;
-			//////////////////////////////////////////////////////////
+		case ID_NORMAL:
+			isNormal = true;
+			break;
+
+	// Phần xử ký kích thước
+	//////////////////////////////////////////////////////////
 		case ID_1:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 1;
+			hPen = CreatePen(style, kt = 1, gColor);
 			break;
 		case ID_2:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 2;
+			hPen = CreatePen(style, kt = 2, gColor);
 			break;
 		case ID_3:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 3;
+			hPen = CreatePen(style, kt = 3, gColor);
 			break;
 		case ID_4:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 4;
+			hPen = CreatePen(style, kt = 4, gColor);
 			break;
 		case ID_5:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_PEN1));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 5;
+			hPen = CreatePen(style, kt = 5, gColor);
 			break;
 		case ID_6:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 6;
+			hPen = CreatePen(style, kt = 6, gColor);
 			break;
 		case ID_7:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 7;
+			hPen = CreatePen(style, kt = 7, gColor);
 			break;
 		case ID_8:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 8;
+			hPen = CreatePen(style, kt = 8, gColor);
 			break;
 		case ID_9:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 9;
+			hPen = CreatePen(style, kt = 9, gColor);
 			break;
 		case ID_10:
 			cursor = LoadCursor(hInst, MAKEINTRESOURCE(IDC_CT));
 			SetCursor(cursor);
 			SetClassLong(hWnd, -12, (DWORD)cursor);
-			kt = 10;
+			hPen = CreatePen(style, kt = 10, gColor);
 			break;
-			
-		//////////////////////////////////////////////////////////////////
+	// Phần xử lý bút vẽ		
+	//////////////////////////////////////////////////////////////////
 		case ID_PS_DOT:
 			gColor = ShowColorDialog(hWnd);
-			hPen = CreatePen(PS_DOT, kt, gColor);
+			hPen = CreatePen(style = PS_DOT, kt, gColor);
+			hinh = hinh == ID_ERASER ? ID_DUONGTHANG : hinh;
+			MyPen(hWnd);
 			break;
 		case ID_PS_DASH1:
-			//CreateDialogBox(hwnd);
 			gColor = ShowColorDialog(hWnd);
-			hPen = CreatePen(PS_DASHDOT,kt, gColor);
+			hPen = CreatePen(style = PS_DASHDOT,kt, gColor);
+			hinh = hinh == ID_ERASER ? ID_DUONGTHANG : hinh;
+			MyPen(hWnd);
 			break;
 		case ID_PS_SOLID:
 			gColor = ShowColorDialog(hWnd);
-		    hPen = CreatePen(PS_SOLID,kt, gColor);
+			hPen = CreatePen(style = PS_SOLID, kt, gColor);
+			hinh = hinh == ID_ERASER ? ID_DUONGTHANG : hinh;
+			MyPen(hWnd);
 			break;
 		case ID_ERASER:
-			hPen = CreatePen(PS_SOLID, 20, RGB(255, 255, 255));
+			gColor = RGB(255, 255, 255);
+			hPen = CreatePen(PS_SOLID, kt = 20, gColor);
 			hinh = LOWORD(wParam);
-			InvalidateRect(hWnd, NULL, FALSE);
+			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
-			
-		case ID_NEW:
-			SetClassLong(hWnd, GCLP_HBRBACKGROUND, (LONG)GetStockObject(WHITE_BRUSH));
+	// 
+	// Menu item tùy chọn để thực hiện lấy ra 1 kích thước từ dialog
+
+		case ID_TuyChon:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOGKT), hWnd, KichThuoc);
+			break;
+	//
+	// Xử lý xự kiện click chọn màu
+
+		case ID_COL_RED:
+			gColor = RGB(255, 0, 0);
+			hPen = CreatePen(style, kt, gColor);
+			break;
+		case ID_COL_BLUE:
+			gColor = RGB(0, 0, 255);
+			hPen = CreatePen(style, kt, gColor);
+			break;
+		case ID_COL_GREEN:
+			gColor = RGB(0,255,0);
+			hPen = CreatePen(style, kt, gColor);
+			break;
+		case ID_COL_CUS:
+			gColor = ShowColorDialog(hWnd);
+			hPen = CreatePen(style, kt, gColor);
+			break;
+	
+	//
+	// Xử lý xự kiện menu item cho menu pop up
+
+		case ID_FILE_COPY:
+			GetWindowRect(hWnd, &tmp);
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			bm = screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80);
+			OpenClipboard(0);
+			EmptyClipboard();
+			SetClipboardData(CF_BITMAP, bm);
+			CloseClipboard();
+			break;
+
+		case ID_FILE_PASTE:
+			OpenClipboard(0);
+			hBitmap = (HBITMAP)GetClipboardData(CF_BITMAP);
+			CloseClipboard();
 			InvalidateRect(hWnd, NULL, TRUE);
 			break;
-		
-		case ID_OPEN:
-			fileName = OpenFileDialog();
-			hBitmap = (HBITMAP)LoadImage(hInst, fileName.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
-			InvalidateRect(hWnd, NULL, FALSE);
-			break;
-		case ID_SAVE:
-			OPENFILENAME ofn;
-			char szFileName[MAX_PATH] = "";
 
-			ZeroMemory(&ofn, sizeof(ofn));
-
-			ofn.lStructSize = sizeof(ofn);
-			ofn.hwndOwner = NULL;
-			ofn.lpstrFilter = (LPCWSTR)L"BMP (*.bmp)\0*.bmp\0";
-			ofn.lpstrFile = (LPWSTR)szFileName;
-			ofn.nMaxFile = MAX_PATH;
-			ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-			ofn.lpstrDefExt = (LPCWSTR)L"bmp";
-
-			GetSaveFileName(&ofn);
+		case ID_FILE_SAVEPOPUP:
+			fileName = SaveFileDialog();
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			RECT tmp;
 			GetWindowRect(hWnd, &tmp);
-			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80, ofn.lpstrFile);
+			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80, fileName.c_str());
+			break;
+	//
+	// Tạo mới màn hình bằng các đổ nền màu trắng
+
+		case ID_NEW:
+			hBitmap = NULL;
+			SetClassLong(hWnd, GCLP_HBRBACKGROUND, (LONG)GetStockObject(WHITE_BRUSH));
+			InvalidateRect(hWnd, NULL, TRUE);
+			break;
+	
+	//
+	// Mở 1 file bitmap và set nó làm hình nền cho ứng 
+	// Hàm xử lý mở file trong file helpers.h
+
+		case ID_OPEN:
+			fileName = OpenFileDialog();
+			hBitmap = (HBITMAP)LoadImage(hInst, fileName.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+			InvalidateRect(hWnd, NULL, TRUE);
+			break;
+	// 
+	// Mở 1 file để tạo 1 file cần save sau đó đổ ảnh bitmap từ màn hình vào file đó
+	// Sử dụng cách chụp màn hình để lấy ảnh bitmap
+	// Hàm xử lý nằm trong file helpers.h
+
+		case ID_SAVE:
+			fileName = SaveFileDialog();
+			std::this_thread::sleep_for(std::chrono::milliseconds(500));
+			GetWindowRect(hWnd, &tmp);
+			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80, fileName.c_str());
 			break;
 		
          ///////////////////////
@@ -665,6 +718,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	case WM_PAINT:
+
+	//
+	// Xự kiện vẽ của chương trình nó sẽ được gọi lại khi gặp hàm InvalidateRect(hWnd, NULL, TRUE);
+	// Mục đích để vẽ lại khi mở một ảnh mới -> tạo hình nền
+
 		PAINTSTRUCT     ps;
 		HDC             hdc;
 		BITMAP          bitmap;
@@ -683,6 +741,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		EndPaint(hWnd, &ps);
 		return 0;
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
@@ -693,3 +752,59 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
+
+//
+// Xử lý phần dialog kích thước để lấy ra kích thược tùy ý
+// Các điều khiển : Slider và một button để xác nhận
+
+INT_PTR CALLBACK KichThuoc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	HWND cb;
+	HWND sl;
+	int tmp;
+	int dwPos = 0;
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		
+		// 
+		// Set dữ liệu cho slider tương ứng với range từ 0 -> 100
+		// Ban đầu sẽ có giá trị tương ứng với kích thước của bút vẽ hiện tại
+		
+		sl = GetDlgItem(hDlg, IDC_SLIDERKT);
+		SendMessage(sl, TBM_SETRANGE, (WPARAM)1, (LPARAM)MAKELONG(0, 100));
+		SendMessage(sl, TBM_SETPOS, (WPARAM)1, kt);
+		SetDlgItemText(hDlg, IDC_NUM, to_wstring(kt).c_str());
+
+		return (INT_PTR)TRUE;
+	case WM_HSCROLL:
+
+		// Update giá trị cho static text ứng với value của slider khi ta kéo chuột
+
+		dwPos = SendMessage(GetDlgItem(hDlg, IDC_SLIDERKT), TBM_GETPOS, 0, 0);
+		SetDlgItemText(hDlg, IDC_NUM, to_wstring(dwPos).c_str());
+		break;
+	case WM_COMMAND:
+		int id = LOWORD(wParam);
+		if (id == BTN_OK) {
+
+			kt = SendMessage(GetDlgItem(hDlg, IDC_SLIDERKT), TBM_GETPOS, 0, 0);			// Set kích thước ứng với giá trị của slider đã chọn
+			hPen = CreatePen(PS_SOLID, kt, gColor);
+			//MessageBox(NULL, to_wstring(val).c_str(), L"TEST", MB_OK);
+			EndDialog(hDlg, LOWORD(wParam));				// Kết thức dialog khi bấn ok
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+// 
+// Hàm xử lý hình cho con trỏ ứng với kích thước to nhỏ khác nhau
+void MyPen(HWND hWnd) {
+	int id = kt < 6 ? IDC_PEN1 : IDC_CT;
+	cursor = LoadCursor(hInst, MAKEINTRESOURCE(id));
+	SetCursor(cursor);
+	SetClassLong(hWnd, -12, (DWORD)cursor);
+}
