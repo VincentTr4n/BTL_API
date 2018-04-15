@@ -11,6 +11,7 @@
 #include <atlstr.h>
 #include <Commctrl.h>
 #include <math.h>
+#include <stack>
 
 #define NUM    10000
 #define TWOPI  (2 * 3.14159)
@@ -149,3 +150,11 @@ HBITMAP screenCapturePart(int x, int y, int w, int h, LPCWSTR fname = L"") {
 	return hBitmap;
 }
 
+HBITMAP GetCUrrentBM(HWND hwnd) {
+	RECT tmp;
+	GetWindowRect(hwnd, &tmp);
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	HBITMAP bm;
+	bm = screenCapturePart(tmp.left + 8, tmp.top + 51.5, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 70);
+	return bm;
+}

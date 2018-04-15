@@ -3,8 +3,9 @@ d:\myworkspace\code_api\btl_api\baitaplon\resource.h(74): warning C4005: 'PS_DAS
   c:\program files (x86)\windows kits\8.1\include\um\wingdi.h(1958): note: see previous definition of 'PS_DASH'
 d:\myworkspace\code_api\btl_api\baitaplon\resource.h(115): warning C4005: 'R2_MASKPEN': macro redefinition
   c:\program files (x86)\windows kits\8.1\include\um\wingdi.h(68): note: see previous definition of 'R2_MASKPEN'
-d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(104): warning C4101: 'buffer': unreferenced local variable
-d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(780): warning C4101: 'tmp': unreferenced local variable
-d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(778): warning C4101: 'cb': unreferenced local variable
+d:\myworkspace\code_api\btl_api\baitaplon\helpers.h(158): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(121): warning C4101: 'buffer': unreferenced local variable
+d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(844): warning C4101: 'tmp': unreferenced local variable
+d:\myworkspace\code_api\btl_api\baitaplon\source.cpp(842): warning C4101: 'cb': unreferenced local variable
   BaiTapLon.vcxproj -> D:\MyWorkSpace\CODE_API\BTL_API\Debug\BaiTapLon.exe
   BaiTapLon.vcxproj -> D:\MyWorkSpace\CODE_API\BTL_API\Debug\BaiTapLon.pdb (Full PDB)

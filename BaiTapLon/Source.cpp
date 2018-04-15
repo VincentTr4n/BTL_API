@@ -60,7 +60,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	}
 	hwnd = CreateWindow(szAppName, TEXT("Ứng Dụng Paint"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL);
 	hInst = hInstance;
-	ShowWindow(hwnd, iCmdShow);
+	//ShowWindow(hwnd, iCmdShow);
+	ShowWindow(hwnd, SW_MAXIMIZE);
 	UpdateWindow(hwnd);
 
 	myhWnd = hwnd;
@@ -76,6 +77,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 }
 
 
+//
+// Stack lưu các hình đã vẽ
+
+stack<HBITMAP> S;
+
+//
+// Các biến để vẽ hình
 HDC hdc;
 PAINTSTRUCT ps;
 RECT rect;
@@ -97,18 +105,28 @@ TCHAR  ListItem[30];
 TCHAR buffer[1 << 15];
 
 
+//
+// Hàm push ảnh vào stack;
+void add(HWND hwnd) {
+	hBitmap = GetCUrrentBM(hwnd);
+	S.push(hBitmap);
+	InvalidateRect(hwnd, NULL, TRUE);
+}
+
+
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	RECT tmp;
 	HBITMAP bm;
 	TCHAR buffer[1 << 15];
+
 	switch (message)
 	{
 	case WM_SIZE:
 
 		break;
 	case WM_CREATE:
-	
+		S.push(NULL);
 		return 0;
 
 	case WM_CTLCOLORSTATIC:
@@ -173,7 +191,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ptPoint[n].x = LOWORD(lParam);
 			ptPoint[n].y = HIWORD(lParam);
 			hdc = GetDC(hWnd);
-			SelectObject(hdc, hPen);
+			SelectObject(hdc, hPen1);
 			if (n >= 1)
 			{
 
@@ -219,10 +237,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		if (hinh == ID_HINHCHUNHAT1){
 			Rectangle(hdc, xStart, yStart, xEnd, yEnd);
+			add(hWnd);
 		}
 
 		if (hinh == ID_HINHCHUNHAT2){
 			RoundRect(hdc, xStart, yStart, xEnd, yEnd,(xEnd-xStart)/20,(yEnd-yStart)/20);
+			add(hWnd);
 
 		}
 		if (hinh == ID_TAMGIAC1)
@@ -234,6 +254,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_tg[2].x = xStart;
 			apt_tg[2].y = yEnd;
 			Polygon(hdc, apt_tg,3);
+			add(hWnd);
 		}
 		if (hinh == ID_TAMGIAC2)
 		{
@@ -244,7 +265,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_tg[2].x = xStart;
 			apt_tg[2].y = yEnd;
 			Polygon(hdc, apt_tg, 3);
-
+			add(hWnd);
 		}
 		if (hinh == ID_MUITENNGANG){
 			apt_mt[0].x =xStart ;
@@ -262,6 +283,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_mt[6].x = xStart;
 			apt_mt[6].y = (yStart + 3 * yEnd) / 4;
 			Polygon(hdc, apt_mt, 7);
+			add(hWnd);
 		}
 		
 		if (hinh == ID_MUITENDOC){
@@ -281,7 +303,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_mt[6].x = xStart;
 			apt_mt[6].y =( yStart+yEnd)/2;
 			Polygon(hdc, apt_mt, 7);
-
+			add(hWnd);
 		}
 		if (hinh == ID_LUCGIAC){
 			apt_lg[0].x =(xStart+xEnd)/2 ;
@@ -303,6 +325,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_lg[5].y = (3 * yStart + yEnd) / 4;
 			
 			Polygon(hdc, apt_lg, 6);
+			add(hWnd);
 		}
 		
 		if (hinh == ID_HINHTHOI)
@@ -316,16 +339,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_ht[3].x = xStart;
 			apt_ht[3].y = (yStart + yEnd) / 2;
 			Polygon(hdc, apt_ht, 4);
+			add(hWnd);
 
 		}
 		if (hinh == ID_ECLIPSE)
 		{
 			Ellipse(hdc, xStart, yStart, xEnd, yEnd);
+			add(hWnd);
 		}
 		if (hinh == ID_DUONGTHANG){
 			MoveToEx(hdc, xStart, yStart, NULL);
 			LineTo(hdc, xEnd, yEnd);
-
+			add(hWnd);
 		}
 		if (hinh == ID_HINHNGUGIAC){
 			apt_ng[0].x = (xStart + xEnd) / 2;
@@ -339,6 +364,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_ng[4].x = xStart;
 			apt_ng[4].y = (yStart + yEnd) / 2;
 			Polygon(hdc, apt_ng, 5);
+			add(hWnd);
 		}
 		if (hinh == ID_SAO4CANH){
 			apt_ns[0].x = (xEnd - xStart) / 2 + xStart;
@@ -365,6 +391,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_ns[7].x = (xEnd - xStart)  / 3 + xStart;
 			apt_ns[7].y = (yEnd - yStart)  / 3 + yStart;
 			Polygon(hdc, apt_ns, 8);
+			add(hWnd);
 		}
 		if (hinh==ID_SAO5CANH){
 			apt_ns[0].x = (xEnd - xStart) / 2 + xStart;
@@ -397,6 +424,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_ns[9].x = (xEnd - xStart) * 3 / 8 + xStart;
 			apt_ns[9].y = (yEnd - yStart) * 2 / 5 + yStart;
 			Polygon(hdc, apt_ns, 10);
+			add(hWnd);
 		}
 		if (hinh == ID_SAO6CANH){
 			apt_ns[0].x = (xEnd - xStart) / 2 + xStart;
@@ -435,6 +463,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_ns[11].x = (xEnd - xStart) / 3 + xStart;
 			apt_ns[11].y = (yEnd - yStart) / 4 + yStart;
 			Polygon(hdc, apt_ns, 12);
+			add(hWnd);
 		}
 		if (hinh == ID_HINHSIN)
 		{
@@ -445,8 +474,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 			Polyline(hdc, apt_hs, NUM);
+			add(hWnd);
 		}
 		//InvalidateRect(hWnd, NULL, FALSE);
+		if (hinh == ID_CHUOT || hinh == ID_ERASER) {
+			add(hWnd);
+		}
 		
 		ReleaseDC(hWnd, hdc);
 		break;
@@ -462,52 +495,71 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case ID_DUONGTHANG:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_ECLIPSE:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_HINHCHUNHAT1:
             hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_HINHCHUNHAT2:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_TAMGIAC1:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_TAMGIAC2:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_HINHTHOI:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_HINHNGUGIAC:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_LUCGIAC:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_MUITENNGANG:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
-
 		case ID_MUITENDOC:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_SAO4CANH:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_SAO5CANH:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_SAO6CANH:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_CHUOT:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
 			break;
 		case ID_HINHSIN:
 			hinh = LOWORD(wParam);
+			MyPen(hWnd);
+			break;
+		case ID_VECHU:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_DIALOGVECHU), hWnd, VeChu);
+			MyPen(hWnd);
 			break;
 
 
@@ -637,8 +689,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			MyPen(hWnd);
 			break;
 		case ID_ERASER:
-			gColor = RGB(255, 255, 255);
-			hPen = CreatePen(PS_SOLID, kt = 20, gColor);
+			//gColor = RGB(255, 255, 255);
+			hPen1 = CreatePen(PS_SOLID,kt = 20, RGB(255, 255, 255));
 			hinh = LOWORD(wParam);
 			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
@@ -674,7 +726,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_FILE_COPY:
 			GetWindowRect(hWnd, &tmp);
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			bm = screenCapturePart(tmp.left, tmp.top + 50, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 50);
+			bm = GetCUrrentBM(hWnd);
 			OpenClipboard(0);
 			EmptyClipboard();
 			SetClipboardData(CF_BITMAP, bm);
@@ -693,8 +745,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			RECT tmp;
 			GetWindowRect(hWnd, &tmp);
-			screenCapturePart(tmp.left, tmp.top + 50, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 50, fileName.c_str());
+			screenCapturePart(tmp.left + 8, tmp.top + 51.5, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 70, fileName.c_str());
 			break;
+		
+		case ID_FILE_UNDO:
+			if(S.size()>1){
+				S.pop();
+				hBitmap = S.top();
+			}
+			InvalidateRect(hWnd, NULL, TRUE);
+			break;
+		
 	//
 	// Tạo mới màn hình bằng các đổ nền màu trắng
 
@@ -722,7 +783,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			fileName = SaveFileDialog();
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			GetWindowRect(hWnd, &tmp);
-			screenCapturePart(tmp.left, tmp.top + 50, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 50, fileName.c_str());
+			screenCapturePart(tmp.left + 8, tmp.top + 51.5, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 70, fileName.c_str());
 			break;
 		
          ///////////////////////
@@ -763,7 +824,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	
 	}
 	
-	
+	//if (hinh != ID_ERASER) MyPen(hWnd);
+
 	return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
@@ -879,3 +941,6 @@ void MyPen(HWND hWnd) {
 	SetCursor(cursor);
 	SetClassLong(hWnd, -12, (DWORD)cursor);
 }
+
+
+
