@@ -10,14 +10,16 @@
 #include <thread>
 #include <atlstr.h>
 #include <Commctrl.h>
-#include <vector>
+#include <math.h>
+
+#define NUM    10000
+#define TWOPI  (2 * 3.14159)
 using namespace std;
 
-vector<wstring> fontNames = { "","","","" };
 
 wstring OpenFileDialog() {
 	OPENFILENAME ofn;
-	char szFile[260];
+	char szFile[MAX_PATH];
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = NULL;

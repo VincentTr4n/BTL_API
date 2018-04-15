@@ -8,6 +8,7 @@ LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK PanelProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DialogProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK KichThuoc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK VeChu(HWND, UINT, WPARAM, LPARAM);
 //void RegisterPanel(void);
 //void CreateDialogBox(HWND);
 //void RegisterDialogClass(HWND);
@@ -27,7 +28,7 @@ static HBITMAP hBitmap = NULL;
 static wstring fileName;
 static int val = 1;
 
-
+HWND myhWnd;
 HINSTANCE ghInstance;
 //////////////
 //////////////////////////
@@ -51,6 +52,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	wndclass.lpszMenuName = MAKEINTRESOURCE(IDR_MENU1);
 	wndclass.lpszClassName = szAppName;
 
+	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR1));
+
 	if (!RegisterClass(&wndclass)){
 		MessageBox(NULL, TEXT("this program requires window nt!"), szAppName, MB_ICONERROR);
 		return 0;
@@ -59,10 +62,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 	hInst = hInstance;
 	ShowWindow(hwnd, iCmdShow);
 	UpdateWindow(hwnd);
+
+	myhWnd = hwnd;
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 	}
 	return msg.lParam;
 }
@@ -72,24 +80,28 @@ HDC hdc;
 PAINTSTRUCT ps;
 RECT rect;
 static int hinh = ID_DUONGTHANG, style = PS_SOLID, n = 0, kt = val;
-static float xStart, yStart, xEnd, yEnd;
+static int xStart, yStart, xEnd, yEnd;
 static HBRUSH hBrush;
-static POINT ptPoint[100000], apt_tg[3], apt_ht[4], apt_mt[7], apt_lg[6], apt_ng[5], apt_ns[12];
+static POINT ptPoint[100000],apt_hs[NUM], apt_tg[3], apt_ht[4], apt_mt[7], apt_lg[6], apt_ng[5], apt_ns[12];
 static HPEN hPen, hPen1;
 static bool isNormal = true;
 
 //
 // Các biến để vẽ chữ 
-static HWND text = NULL;
-static int tx = 0, ty = 0;
-static HWND hStatic = NULL;
-static HFONT hFont;
+HWND text = NULL;
+HWND hStatic = NULL;
+int tx = 0, ty = 0;
+HFONT hFont;
+int fontSize = 30;
+TCHAR  ListItem[30];
+TCHAR buffer[1 << 15];
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	RECT tmp;
 	HBITMAP bm;
+	TCHAR buffer[1 << 15];
 	switch (message)
 	{
 	case WM_SIZE:
@@ -98,7 +110,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 	
 		return 0;
+
+	case WM_CTLCOLORSTATIC:
+	{
+		HDC hdcStatic = (HDC)wParam;
+		SetBkMode(hdcStatic, TRANSPARENT);
+		return (INT_PTR)(HBRUSH)GetStockObject(NULL_BRUSH);
+	}
 	case WM_CLOSE:
+	
 		if (MessageBox(hWnd, TEXT("Bạn có muốn thoát không?"), TEXT("Hỏi"), MB_YESNO | MB_ICONQUESTION) == IDYES)
 			PostQuitMessage(0);
 		return 0;
@@ -172,8 +192,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	// Xự kiện nhấn chuột -> lấy vị trí bắt đầu vẽ
 
 	case WM_LBUTTONDOWN:
+		
 		xStart = LOWORD(lParam);
 		yStart = HIWORD(lParam);
+
 		break;
 	
 	//
@@ -414,7 +436,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			apt_ns[11].y = (yEnd - yStart) / 4 + yStart;
 			Polygon(hdc, apt_ns, 12);
 		}
-		
+		if (hinh == ID_HINHSIN)
+		{
+			for (int i = 0; i < NUM; i++)
+			{
+				apt_hs[i].x = xStart + i * (xEnd - xStart) / NUM;
+				apt_hs[i].y = yStart + (int)((yEnd - yStart) / 2 * (1 - sin(TWOPI * i / NUM)));
+			}
+
+			Polyline(hdc, apt_hs, NUM);
+		}
+		//InvalidateRect(hWnd, NULL, FALSE);
 		
 		ReleaseDC(hWnd, hdc);
 		break;
@@ -424,72 +456,61 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	
 	// 
 	// Phần xử lý chọn các hình vẽ
+	// Lưu lại các ID của hình vào biến hinh
 
 		switch (LOWORD(wParam))
 		{
 		case ID_DUONGTHANG:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_ECLIPSE:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHCHUNHAT1:
             hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHCHUNHAT2:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_TAMGIAC1:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_TAMGIAC2:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHTHOI:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_HINHNGUGIAC:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_LUCGIAC:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_MUITENNGANG:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 
 		case ID_MUITENDOC:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_SAO4CANH:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_SAO5CANH:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
 		case ID_SAO6CANH:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
-		
 		case ID_CHUOT:
 			hinh = LOWORD(wParam);
-			//InvalidateRect(hWnd, NULL, FALSE);
 			break;
-	
+		case ID_HINHSIN:
+			hinh = LOWORD(wParam);
+			break;
+
+
 	// Phần xử lý chổi quét
 	////////////////////////////////////////
 		case ID_CQ_SOLID:
@@ -501,38 +522,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_CQ_HORIZONTAL:
 			gColor1 = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_HORIZONTAL,gColor1);
-			InvalidateRect(hWnd, NULL, FALSE);
 			isNormal = false;
 			break;
 			
 		case ID_CQ_VERTICAL:
 			gColor1 = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_VERTICAL, gColor1);
-			InvalidateRect(hWnd, NULL, FALSE);
 			isNormal = false;
 			break;
 		case ID_CQ_FDIALGONAL:
 		    gColor1 = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_FDIAGONAL, gColor1);
-			InvalidateRect(hWnd, NULL, FALSE);
 			isNormal = false;
 			break;
 		case ID_CQ_BDIAGONAL:
 			gColor1 = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_BDIAGONAL, gColor1);
-			InvalidateRect(hWnd, NULL, FALSE);
 			isNormal = false;
 			break;
 		case ID_CQ_CROSS:
 			gColor1 = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_CROSS, gColor1);
-			InvalidateRect(hWnd, NULL, FALSE);
 			isNormal = false;
 			break;
 		case ID_CQ_DIAGCROSS:
 			gColor1 = ShowColorDialog(hWnd);
 			hBrush = CreateHatchBrush(HS_DIAGCROSS, gColor);
-			InvalidateRect(hWnd, NULL, FALSE);
 			isNormal = false;
 			break;
 		case ID_NORMAL:
@@ -659,7 +674,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_FILE_COPY:
 			GetWindowRect(hWnd, &tmp);
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			bm = screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80);
+			bm = screenCapturePart(tmp.left, tmp.top + 50, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 50);
 			OpenClipboard(0);
 			EmptyClipboard();
 			SetClipboardData(CF_BITMAP, bm);
@@ -678,7 +693,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			RECT tmp;
 			GetWindowRect(hWnd, &tmp);
-			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80, fileName.c_str());
+			screenCapturePart(tmp.left, tmp.top + 50, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 50, fileName.c_str());
 			break;
 	//
 	// Tạo mới màn hình bằng các đổ nền màu trắng
@@ -707,7 +722,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			fileName = SaveFileDialog();
 			std::this_thread::sleep_for(std::chrono::milliseconds(500));
 			GetWindowRect(hWnd, &tmp);
-			screenCapturePart(tmp.left + 10, tmp.top + 60, tmp.right - tmp.left - 20, tmp.bottom - tmp.top - 80, fileName.c_str());
+			screenCapturePart(tmp.left, tmp.top + 50, tmp.right - tmp.left - 10, tmp.bottom - tmp.top - 50, fileName.c_str());
 			break;
 		
          ///////////////////////
@@ -787,6 +802,10 @@ INT_PTR CALLBACK KichThuoc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
 		break;
 	case WM_COMMAND:
 		int id = LOWORD(wParam);
+		if (id == IDCANCEL) {
+			EndDialog(hDlg, LOWORD(wParam));				// Kết thức dialog khi bấn ok
+			return (INT_PTR)TRUE;
+		}
 		if (id == BTN_OK) {
 
 			kt = SendMessage(GetDlgItem(hDlg, IDC_SLIDERKT), TBM_GETPOS, 0, 0);			// Set kích thước ứng với giá trị của slider đã chọn
@@ -799,6 +818,58 @@ INT_PTR CALLBACK KichThuoc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
 	}
 	return (INT_PTR)FALSE;
 }
+
+
+//
+//
+
+INT_PTR CALLBACK VeChu(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	HWND txEdit;
+	HWND cbFont;
+	TCHAR data[2][20] = { TEXT("Arial"), TEXT("Times New Roman") };
+	switch (message)
+	{
+	case WM_INITDIALOG:
+
+		// 
+		// Set dữ liệu cho combo box tương ứng với tên font chữ trong mảng
+		cbFont = GetDlgItem(hDlg, IDC_COMBO1);
+		TCHAR ITEM[16];
+		memset(&ITEM, 0, sizeof(ITEM));
+		for (int i = 0; i < 2; i++) {
+			wcscpy_s(ITEM, sizeof(ITEM) / sizeof(TCHAR), (TCHAR*)data[i]);
+			SendMessage(cbFont, CB_ADDSTRING, (WPARAM)0, (LPARAM)ITEM);
+		}
+		SendMessage(cbFont, CB_SETCURSEL, (WPARAM)2, (LPARAM)0);
+
+		return (INT_PTR)TRUE;
+	case WM_COMMAND:
+		int id = LOWORD(wParam);
+		if (id == IDCANCEL) {
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+		if (id == IDOK) {
+			txEdit = GetDlgItem(hDlg, IDC_EDIT1);
+			GetWindowText(txEdit, buffer, 1 << 15);
+
+			EndDialog(hDlg, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+
+		if (HIWORD(wParam) == CBN_SELCHANGE)
+		{
+			int ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL,(WPARAM)0, (LPARAM)0);
+			(TCHAR)SendMessage((HWND)lParam, (UINT)CB_GETLBTEXT,(WPARAM)ItemIndex, (LPARAM)ListItem);
+			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
 
 // 
 // Hàm xử lý hình cho con trỏ ứng với kích thước to nhỏ khác nhau
